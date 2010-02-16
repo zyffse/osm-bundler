@@ -1,7 +1,7 @@
 import osmbundler
 
 # command line arguments:
-#  - a file with a list of images or a directory with images
+#  - a file with a list of images or a directory with images 
 #  - which feature extraction method to use
 #  - how features are matched: manually or with KeyMatchFull
 
