@@ -1,4 +1,7 @@
+import logging
 import osmbundler
+
+logging.basicConfig(level=logging.INFO)
 
 # command line arguments:
 #  - a file with a list of images or a directory with images 
