@@ -1,4 +1,5 @@
-import sys, os, getopt
+import logging
+import sys, os, getopt, tempfile
 import PIL
 
 # TODO: replace this later with dynamical load
@@ -38,9 +39,13 @@ class OsmBundler():
         dirname = os.path.dirname(sys.argv[0])
         self.binDir = os.path.join(dirname, "bin")
         self.bundler = getExecPath(self.binDir, self.bundler)
-
-        # create a temporary directory for the project with unique name, set self.workDir
         
+        # create a working directory
+        self.workDir = tempfile.mkdtemp()
+        logging.info("Working directory created: "+self.workDir)
+        
+        if not (os.path.isdir(self.photosArg) or os.path.isfile(self.photosArg)):
+            raise Exception, "'%s' is neither directory nor a file name" % self.photosArg
         # initialize feature extractor based on command line arguments
         
         # initialize mathing engine based on command line arguments
@@ -63,8 +68,21 @@ class OsmBundler():
         # open each photo, resize, convert to pgm, copy it to self.workDir and calculate focal distance
         # conversion to pgm is performed by PIL library
         # EXIF reading is performed by PIL library
-        pass
         
+        if os.path.isdir(self.photosArg):
+            # directory with images
+            photos=[f for f in os.listdir(self.photosArg) if os.path.isfile(os.path.join(self.photosArg, f)) and os.path.splitext(f)[1].lower()==".jpg"]
+            if len(photos)<3: raise Exception, "The directory with images should contain at least 3 .jpg photos"
+            for photo in photos:
+                logging.info(photo)
+        elif os.path.isfile(self.photosArg):
+            # a file with a list of images
+            photosFile = open(self.photosArg)
+            for photo in photosFile:
+                photo = photo.rstrip()
+                logging.info(photo)
+            photosFile.close()
+
     def extractFeatures(self):
         # let self.featureExtractor do its job
         # in the case of manual matching do nothing
