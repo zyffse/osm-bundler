@@ -1,0 +1,2 @@
+
+maxPhotoSize = 1200

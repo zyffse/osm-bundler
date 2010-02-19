@@ -1,6 +1,10 @@
 import logging
 import sys, os, getopt, tempfile
-import PIL
+
+from PIL import Image
+from PIL.ExifTags import TAGS
+
+import defaults
 
 # TODO: replace this later with dynamical load
 from matching.bundler import BundlerMatching
@@ -10,8 +14,8 @@ from matching.manual import ManualMatching
 from features.siftlowe import LoweSift
 from features.siftvlfeat import VlfeatSift
 
-commandLineFlags = "p:"
-commandLineLongFlags = ["photos="]
+commandLineLongFlags = ["photos=", "maxPhotoSize="]
+exifAttrs = dict(Model=True,Make=True,ExifImageWidth=True,ExifImageHeight=True,FocalLength=True)
 
 
 class OsmBundler():
@@ -34,6 +38,11 @@ class OsmBundler():
     matchingEngine = None
 
     def __init__(self):
+        # mixin defaults
+        for attr in dir(defaults):
+            if attr[0]!='_':
+                setattr(self, attr, getattr(defaults, attr))
+        
         self.parseCommandLineFlags()
         
         dirname = os.path.dirname(sys.argv[0])
@@ -59,6 +68,8 @@ class OsmBundler():
         for opt,val in opts:
             if opt=="--photos":
                 self.photosArg=val
+            elif opt=="--maxPhotoSize":
+                if val.isdigit() and int(val)>0: self.maxPhotoSize = int(val)
             elif opt=="--help":
                 self.printHelpExit()
         
@@ -74,14 +85,36 @@ class OsmBundler():
             photos=[f for f in os.listdir(self.photosArg) if os.path.isfile(os.path.join(self.photosArg, f)) and os.path.splitext(f)[1].lower()==".jpg"]
             if len(photos)<3: raise Exception, "The directory with images should contain at least 3 .jpg photos"
             for photo in photos:
-                logging.info(photo)
+                self._preparePhoto(self.photosArg, photo)
         elif os.path.isfile(self.photosArg):
             # a file with a list of images
             photosFile = open(self.photosArg)
             for photo in photosFile:
                 photo = photo.rstrip()
-                logging.info(photo)
+                if os.path.isfile(photo):
+                    dirname,basename = os.path.split(photo)
+                    self._preparePhoto(dirname,basename)
             photosFile.close()
+
+    def _preparePhoto(self, photoDir, photo):
+        inputFileName = os.path.join(photoDir, photo)
+        outputFileName = os.path.join(self.workDir, photo) +  ".pgm"
+        # open photo
+        photoHandle = Image.open(inputFileName)
+        # get EXIF information as dictionary
+        exif = self._getExif(photoHandle)
+        print exif
+        photoHandle.convert("L").save(outputFileName)
+        
+    def _getExif(self, photoHandle):
+        exif = {}
+        info = photoHandle._getexif()
+        if info:
+            for attr, value in info.items():
+                decodedAttr = TAGS.get(attr, attr)
+                if decodedAttr in exifAttrs: exif[decodedAttr] = value
+        if 'FocalLength' in exif: exif['FocalLength'] = float(exif['FocalLength'][0])/float(exif['FocalLength'][1])
+        return exif
 
     def extractFeatures(self):
         # let self.featureExtractor do its job
