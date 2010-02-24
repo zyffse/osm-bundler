@@ -1,8 +1,18 @@
+import sys,os,subprocess,logging
+
 from engine import MatchingEngine
 
+className = "BundlerMatching"
 class BundlerMatching(MatchingEngine):
-    def __init__(self):
-        pass
+    featuresListFileName = "list_features.txt"
+    executable = ''
+    
+    def __init__(self, distrDir):
+        if sys.platform == "win32":
+            self.executable = os.path.join(distrDir, "bundler/bin/KeyMatchFull.exe")
+        else:
+            self.executable = os.path.join(distrDir, "bundler/bin/KeyMatchFull")
+        logging.info("BundlerMatching executable path: %s" % self.executable)
 
     def match(self):
-        pass
+        subprocess.call([self.executable, self.featuresListFileName, self.outputFileName])

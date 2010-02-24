@@ -1,8 +1,26 @@
+import os, subprocess, gzip
+
 from sift import Sift
 
+className = "LoweSift"
 class LoweSift(Sift):
-    def __init__(self):
-        pass
+    
+    win32Executable = "sift-lowe/siftWin32.exe"
+    linuxExecutable = "sift-lowe/siftWin32"
+    
+    def __init__(self, distrDir):
+        Sift.__init__(self, distrDir)
 
-    def extract(self):
-        pass
+    def extract(self, photo):
+        photoFile = open("%s.jpg.pgm" % photo, "rb")
+        siftTextFile = open("%s.key" % photo, "w")
+        subprocess.call(self.executable, **dict(stdin=photoFile, stdout=siftTextFile))
+        photoFile.close()
+        siftTextFile.close()
+        # gzip SIFT file and remove it
+        siftTextFile = open("%s.key" % photo, "r")
+        siftGzipFile = gzip.open("%s.key.gz" % photo, "wb")
+        siftGzipFile.writelines(siftTextFile)
+        siftGzipFile.close()
+        siftTextFile.close()
+        os.remove("%s.key" % photo)

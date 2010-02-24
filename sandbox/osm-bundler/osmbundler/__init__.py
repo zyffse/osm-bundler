@@ -1,32 +1,41 @@
 import logging
-import sys, os, getopt, tempfile
+import sys, os, getopt, tempfile, subprocess
+import sqlite3
 
 from PIL import Image
 from PIL.ExifTags import TAGS
 
 import defaults
 
-# TODO: replace this later with dynamical load
-from matching.bundler import BundlerMatching
-from matching.manual import ManualMatching
+import matching
+from matching import *
 
-# TODO: replace this later with dynamical load
-from features.siftlowe import LoweSift
-from features.siftvlfeat import VlfeatSift
+import features
+from features import *
 
-commandLineLongFlags = ["photos=", "maxPhotoSize="]
+
+
+distrPath = os.path.dirname( os.path.abspath(sys.argv[0]) )
+bundlerExecutable = ''
+if sys.platform == "win32": bundlerExecutable = os.path.join(distrPath, "software/bundler/bin/bundler.exe")
+else: bundlerExecutable = os.path.join(distrPath, "software/bundler/bin/bundler")
+
+SCALE = 1.0
+bundlerListFileName = "list.txt"
+
+camerasDatabase = os.path.join(distrPath, "osmbundler/cameras/cameras.sqlite")
+commandLineLongFlags = ["photos=", "maxPhotoDimension=", "featureExtractor="]
 exifAttrs = dict(Model=True,Make=True,ExifImageWidth=True,ExifImageHeight=True,FocalLength=True)
 
 
 class OsmBundler():
-    # it might be need to convert results of feature extraction
-    bundlerVersion = "NoahSnavely-0.3"
-
     # path to bin directory of the bundler distribution
     binDir = ""
 
     # path to bundler executable
     bundler = "bundler"
+    
+    currentDir = ""
 
     workDir = ""
     
@@ -36,9 +45,17 @@ class OsmBundler():
     featureExtractor = None
     
     matchingEngine = None
+    
+    # sqlite cursor
+    dbCursor = None
+    
+    # list of photos with focal distances for bundler input
+    bundlerListFile = None
+    
+    # list of files with extracted features
+    featuresListFile = None
 
     def __init__(self):
-        # mixin defaults
         for attr in dir(defaults):
             if attr[0]!='_':
                 setattr(self, attr, getattr(defaults, attr))
@@ -49,15 +66,20 @@ class OsmBundler():
         self.binDir = os.path.join(dirname, "bin")
         self.bundler = getExecPath(self.binDir, self.bundler)
         
+        # save current directory (i.e. from where RunBundler.py is called)
+        self.currentDir = os.getcwd()
         # create a working directory
         self.workDir = tempfile.mkdtemp()
         logging.info("Working directory created: "+self.workDir)
         
         if not (os.path.isdir(self.photosArg) or os.path.isfile(self.photosArg)):
             raise Exception, "'%s' is neither directory nor a file name" % self.photosArg
-        # initialize feature extractor based on command line arguments
         
         # initialize mathing engine based on command line arguments
+        self.initMatchingEngine()
+
+        # initialize feature extractor based on command line arguments
+        self.initFeatureExtractor()
 
     def parseCommandLineFlags(self):
         try:
@@ -67,9 +89,13 @@ class OsmBundler():
 
         for opt,val in opts:
             if opt=="--photos":
-                self.photosArg=val
-            elif opt=="--maxPhotoSize":
-                if val.isdigit() and int(val)>0: self.maxPhotoSize = int(val)
+                self.photosArg = val
+            elif opt=="--maxPhotoDimension":
+                if val.isdigit() and int(val)>0: self.maxPhotoDimension = int(val)
+            elif opt=="--matchingEngine":
+                self.matchingEngine = val
+            elif opt=="--featureExtractor":
+                self.featureExtractor = val
             elif opt=="--help":
                 self.printHelpExit()
         
@@ -80,6 +106,17 @@ class OsmBundler():
         # conversion to pgm is performed by PIL library
         # EXIF reading is performed by PIL library
         
+        # open connection to cameras database
+        conn = sqlite3.connect(camerasDatabase)
+        self.dbCursor = conn.cursor()
+        
+        # open list of photos with focal distances for bundler input
+        self.bundlerListFile = open(os.path.join(self.workDir,bundlerListFileName), "w")
+        
+        # open list of files with extracted features
+        if self.matchingEngine.featureExtractionNeeded:
+            self.featuresListFile = open(os.path.join(self.workDir,self.matchingEngine.featuresListFileName), "w")
+
         if os.path.isdir(self.photosArg):
             # directory with images
             photos=[f for f in os.listdir(self.photosArg) if os.path.isfile(os.path.join(self.photosArg, f)) and os.path.splitext(f)[1].lower()==".jpg"]
@@ -96,15 +133,37 @@ class OsmBundler():
                     self._preparePhoto(dirname,basename)
             photosFile.close()
 
+        if self.featuresListFile: self.featuresListFile.close()
+        self.bundlerListFile.close()
+        self.dbCursor.close()
+
+
     def _preparePhoto(self, photoDir, photo):
         inputFileName = os.path.join(photoDir, photo)
-        outputFileName = os.path.join(self.workDir, photo) +  ".pgm"
+        outputFileNameJpg = os.path.join(self.workDir, photo)
+        outputFileNamePgm = outputFileNameJpg + ".pgm"
         # open photo
         photoHandle = Image.open(inputFileName)
-        # get EXIF information as dictionary
+        # get EXIF information as a dictionary
         exif = self._getExif(photoHandle)
-        print exif
-        photoHandle.convert("L").save(outputFileName)
+        self._calculateFocalDistance(photo, photoDir, exif)
+        
+        # resize photo if necessary
+        maxDimension = photoHandle.size[0]
+        if photoHandle.size[1]>maxDimension: maxDimension = photoHandle.size[1]
+        if maxDimension > self.maxPhotoDimension:
+            scale = float(self.maxPhotoDimension)/float(maxDimension)
+            newWidth = int(scale * photoHandle.size[0])
+            newHeight = int(scale * photoHandle.size[1])
+            photoHandle = photoHandle.resize((newWidth, newHeight))
+        
+        
+        photoHandle.save(outputFileNameJpg)
+        photoHandle.convert("L").save(outputFileNamePgm)
+        if self.matchingEngine.featureExtractionNeeded:
+            self.extractFeatures(photo)
+        os.remove(outputFileNamePgm)
+        
         
     def _getExif(self, photoHandle):
         exif = {}
@@ -115,24 +174,74 @@ class OsmBundler():
                 if decodedAttr in exifAttrs: exif[decodedAttr] = value
         if 'FocalLength' in exif: exif['FocalLength'] = float(exif['FocalLength'][0])/float(exif['FocalLength'][1])
         return exif
+    
+    def _calculateFocalDistance(self, photo, photoDir, exif):
+        hasFocal = False
+        if 'Make' in exif and 'Model' in exif:
+            # check if have camera entry in the database
+            self.dbCursor.execute("select ccd_width from cameras where make=? and model=?", (exif['Make'],exif['Model']))
+            ccdWidth = self.dbCursor.fetchone()
+            if ccdWidth:
+                if 'FocalLength' in exif and 'ExifImageWidth' in exif and 'ExifImageHeight' in exif:
+                    focalLength = float(exif['FocalLength'])
+                    width = float(exif['ExifImageWidth'])
+                    height = float(exif['ExifImageHeight'])
+                    if focalLength>0 and width>0 and height>0:
+                        if width<height: width = height
+                        focalPixels = width * (focalLength / ccdWidth[0])
+                        hasFocal = True
+                        self.bundlerListFile.write("%s 0 %s\n" % (photo,SCALE*focalPixels))
+            else: logging.info("Entry for the camera %s %s does not exist in the camera database" % (exif['Make'], exif['Model']))
+        if not hasFocal:
+            logging.info("Can't estimate focal length in pixels for the photo '%s'" % os.path.join(photoDir,photo))
+            self.bundlerListFile.writelines("%s\n" % photo)
 
-    def extractFeatures(self):
+
+    def initMatchingEngine(self):
+        try:
+            matchingEngine = getattr(matching, self.matchingEngine)
+            matchingEngineClass = getattr(matchingEngine, matchingEngine.className)
+            self.matchingEngine = matchingEngineClass(os.path.join(distrPath, "software"))
+        except:
+            raise Exception, "Unable initialize matching engine %s" % self.featureExtractor
+
+    def initFeatureExtractor(self):
+        try:
+            featureExtractor = getattr(features, self.featureExtractor)
+            featureExtractorClass = getattr(featureExtractor, featureExtractor.className)
+            self.featureExtractor = featureExtractorClass(os.path.join(distrPath, "software"))
+        except:
+            raise Exception, "Unable initialize feature extractor %s" % self.featureExtractor
+
+    def extractFeatures(self, photo):
         # let self.featureExtractor do its job
-        # in the case of manual matching do nothing
-        pass
+        os.chdir(self.workDir)
+        photoBaseName = os.path.splitext(photo)[0] # cut extension out
+        self.featureExtractor.extract(photoBaseName)
+        self.featuresListFile.write("%s.%s\n" % (photoBaseName, self.featureExtractor.fileExtension))
+        os.chdir(self.currentDir)
     
     def matchFeatures(self):
         # let self.matchingEngine do its job
-        # self.matchingEngine for the manual matching is supposed to create all files which Bundler needs
-        pass
+        os.chdir(self.workDir)
+        self.matchingEngine.match()
+        os.chdir(self.currentDir)
     
     def doBundleAdjustment(self):
         # just run Bundler here
-        pass
+        os.chdir(self.workDir)
+        os.mkdir("bundle")
+        bundlerOutputFile = open("bundle/out", "w")
+        subprocess.call([bundlerExecutable, "list.txt", "--options_file", os.path.join(distrPath, "osmbundler/options.txt")], **dict(stdout=bundlerOutputFile))
+        bundlerOutputFile.close()
+        os.chdir(self.currentDir)
     
     def printHelpExit(self):
         self.printHelp()
         sys.exit(2)
+    
+    def openResult(self):
+        subprocess.call(["explorer", self.workDir])
     
     def printHelp(self):
         print "--photos=<text file with a list of photos or a directory with photos>"
