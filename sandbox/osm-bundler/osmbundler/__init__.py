@@ -245,7 +245,9 @@ class OsmBundler():
     
     def printHelp(self):
         print "--photos=<text file with a list of photos or a directory with photos>"
-        print "\tThe only obligatory tag"
+        print "\tThe only obligatory option"
+        print "--featureExtractor=<name of feature extractor, default value is siftvlfeat>"
+        print "\tTwo feature extractors are supported at the moment: siftvlfeat from VLFeat library and siftlowe for David Lowe's SIFT demo implementation"
         print "--help"
         print "\tPrint help and exit"
 
