@@ -13,9 +13,9 @@ manager = osmbundler.OsmBundler()
 
 manager.preparePhotos()
 
-manager.extractFeatures()
-
 manager.matchFeatures()
 
 manager.doBundleAdjustment()
+
+manager.openResult()
 
