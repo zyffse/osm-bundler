@@ -1,0 +1,15 @@
+#summary How to install and run the osm-bundler
+
+=Installation=
+ * Install Python
+ * Install PIL library from http://www.pythonware.com/products/pil/
+ * Download the osm-bundler distribution http://osm-bundler.googlecode.com/files/osm-bundler-full.rar and unpack it.
+
+
+=Running=
+Normally you would run osm-bundler in the following way:
+ python path_to/RunBundler.py --photo=<text file with a list of photos or a directory with photos>
+
+To see help just run:
+ python path_to/RunBundler.py
+
