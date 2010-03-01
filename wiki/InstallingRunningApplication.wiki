@@ -1,8 +1,11 @@
 #summary How to install and run the osm-bundler
+#labels Featured
+
+The easiest way to install osm-bundler is described here. Alternatively you can compose it yourself from several pieces. See CreateDistributionYourself for the details.
 
 =Installation=
  * Install Python
- * Install PIL library from http://www.pythonware.com/products/pil/
+ * Install PIL library for Python from http://www.pythonware.com/products/pil/
  * Download the osm-bundler distribution http://osm-bundler.googlecode.com/files/osm-bundler-full.rar and unpack it.
 
 
@@ -12,4 +15,3 @@ Normally you would run osm-bundler in the following way:
 
 To see help just run:
  python path_to/RunBundler.py
-
