@@ -6,7 +6,7 @@ className = "LoweSift"
 class LoweSift(Sift):
     
     win32Executable = "sift-lowe/siftWin32.exe"
-    linuxExecutable = "sift-lowe/siftWin32"
+    linuxExecutable = "sift-lowe/sift"
     
     def __init__(self, distrDir):
         Sift.__init__(self, distrDir)
