@@ -29,12 +29,7 @@ exifAttrs = dict(Model=True,Make=True,ExifImageWidth=True,ExifImageHeight=True,F
 
 
 class OsmBundler():
-    # path to bin directory of the bundler distribution
-    binDir = ""
 
-    # path to bundler executable
-    bundler = "bundler"
-    
     currentDir = ""
 
     workDir = ""
@@ -61,15 +56,11 @@ class OsmBundler():
                 setattr(self, attr, getattr(defaults, attr))
         
         self.parseCommandLineFlags()
-        
-        dirname = os.path.dirname(sys.argv[0])
-        self.binDir = os.path.join(dirname, "bin")
-        self.bundler = getExecPath(self.binDir, self.bundler)
-        
+
         # save current directory (i.e. from where RunBundler.py is called)
         self.currentDir = os.getcwd()
         # create a working directory
-        self.workDir = tempfile.mkdtemp()
+        self.workDir = tempfile.mkdtemp(prefix="osm-bundler-")
         logging.info("Working directory created: "+self.workDir)
         
         if not (os.path.isdir(self.photosArg) or os.path.isfile(self.photosArg)):
@@ -139,6 +130,7 @@ class OsmBundler():
 
 
     def _preparePhoto(self, photoDir, photo):
+        logging.info("\nProcessing photo '%s':" % photo)
         inputFileName = os.path.join(photoDir, photo)
         outputFileNameJpg = os.path.join(self.workDir, photo)
         outputFileNamePgm = outputFileNameJpg + ".pgm"
@@ -156,6 +148,7 @@ class OsmBundler():
             newWidth = int(scale * photoHandle.size[0])
             newHeight = int(scale * photoHandle.size[1])
             photoHandle = photoHandle.resize((newWidth, newHeight))
+            logging.info("\tThe photo has been scaled down to %sx%s" % (newWidth,newHeight))
         
         
         photoHandle.save(outputFileNameJpg)
@@ -191,9 +184,9 @@ class OsmBundler():
                         focalPixels = width * (focalLength / ccdWidth[0])
                         hasFocal = True
                         self.bundlerListFile.write("%s 0 %s\n" % (photo,SCALE*focalPixels))
-            else: logging.info("Entry for the camera %s %s does not exist in the camera database" % (exif['Make'], exif['Model']))
+            else: logging.info("\tEntry for the camera %s %s does not exist in the camera database" % (exif['Make'], exif['Model']))
         if not hasFocal:
-            logging.info("Can't estimate focal length in pixels for the photo '%s'" % os.path.join(photoDir,photo))
+            logging.info("\tCan't estimate focal length in pixels for the photo '%s'" % os.path.join(photoDir,photo))
             self.bundlerListFile.writelines("%s\n" % photo)
 
 
@@ -229,12 +222,14 @@ class OsmBundler():
     
     def doBundleAdjustment(self):
         # just run Bundler here
+        logging.info("\nPerforming bundle adjustment...")
         os.chdir(self.workDir)
         os.mkdir("bundle")
         bundlerOutputFile = open("bundle/out", "w")
         subprocess.call([bundlerExecutable, "list.txt", "--options_file", os.path.join(distrPath, "osmbundler/options.txt")], **dict(stdout=bundlerOutputFile))
         bundlerOutputFile.close()
         os.chdir(self.currentDir)
+        logging.info("Finished!")
     
     def printHelpExit(self):
         self.printHelp()
@@ -244,12 +239,9 @@ class OsmBundler():
         subprocess.call(["explorer", self.workDir])
     
     def printHelp(self):
-        print "--photos=<text file with a list of photos or a directory with photos>"
-        print "\tThe only obligatory option"
-        print "--featureExtractor=<name of feature extractor, default value is siftvlfeat>"
-        print "\tTwo feature extractors are supported at the moment: siftvlfeat from VLFeat library and siftlowe for David Lowe's SIFT demo implementation"
-        print "--help"
-        print "\tPrint help and exit"
+        helpFile = open(os.path.join(distrPath, "osmbundler/help.txt"), "r")
+        print helpFile.read()
+        helpFile.close()
 
 
 # service function: get path of an executable (.exe suffix is added if we are on Windows)

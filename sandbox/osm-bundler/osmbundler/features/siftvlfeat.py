@@ -1,4 +1,4 @@
-import os, subprocess, gzip
+import os, subprocess, gzip, logging
 
 from sift import Sift
 
@@ -12,13 +12,15 @@ class VlfeatSift(Sift):
         Sift.__init__(self, distrDir)
 
     def extract(self, photo):
+        logging.info("\tExtracting features with the SIFT method from VLFeat library...")
         subprocess.call([self.executable, "%s.jpg.pgm" % photo, "-o", "%s.key" % photo])
         # perform conversion to David Lowe's format
         vlfeatTextFile = open("%s.key" % photo, "r")
         loweGzipFile = gzip.open("%s.key.gz" % photo, "wb")
         featureStrings = vlfeatTextFile.readlines()
+        numFeatures = len(featureStrings)
         # write header
-        loweGzipFile.write("%s 128\n" % len(featureStrings))
+        loweGzipFile.write("%s 128\n" % numFeatures)
         for featureString in featureStrings:
             features = featureString.split()
             i1 = 0
@@ -29,3 +31,4 @@ class VlfeatSift(Sift):
         vlfeatTextFile.close()
         # remove original SIFT file
         os.remove("%s.key" % photo)
+        logging.info("\tFound %s features" % numFeatures)
