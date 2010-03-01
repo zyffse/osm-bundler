@@ -236,7 +236,8 @@ class OsmBundler():
         sys.exit(2)
     
     def openResult(self):
-        subprocess.call(["explorer", self.workDir])
+        if sys.platform == "win32": subprocess.call(["explorer", self.workDir])
+        else: print "See the results in the '%' directory" % self.workDir
     
     def printHelp(self):
         helpFile = open(os.path.join(distrPath, "osmbundler/help.txt"), "r")
