@@ -7,7 +7,7 @@ Instead of downloading ready to use Bundler distribution, you can compose it you
 
  * Install Python
  * Install PIL library from http://www.pythonware.com/products/pil/
- * Download Python scripts from http://osm-bundler.googlecode.com/files/osm-bundler.rar and unpack them. _osm-bundler_ will be the top level directory in the distribution.
+ * Download Python scripts from http://osm-bundler.googlecode.com/files/osm-bundler.tar.gz and unpack them. _osm-bundler_ will be the top level directory in the distribution.
  * Create _software_ directory in the _osm-bundler_ directory
 
 Install Bundler:
