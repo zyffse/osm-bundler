@@ -6,7 +6,7 @@ The easiest way to install osm-bundler is described here. Alternatively you can 
 =Installation=
  * Install Python
  * Install PIL library for Python from http://www.pythonware.com/products/pil/
- * Download the osm-bundler distribution http://osm-bundler.googlecode.com/files/osm-bundler-full.rar and unpack it.
+ * Download the osm-bundler distribution http://osm-bundler.googlecode.com/files/osm-bundler-full.tar.gz and unpack it.
 
 
 =Running=
