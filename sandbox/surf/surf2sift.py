@@ -25,18 +25,19 @@ def SURF2SIFT(filename):
   # This removes the laplacian, converts the angle to radians
   # and normalises the descriptor to integers between 0 and 256
   print 'Converting data to SIFT format'
-  for i in range(2,n):
+  for i in range(2,n+2):
     temp = data[i].split()
     foo = map(float,temp[:5])
-    keypoint = '\n%5.3f %5.3f %5.1f %5.4f' % (foo[0],foo[1],foo[3],(float(foo[4])-190)*pi/180.0) 
+    keypoint = '\n%5.2f %5.2f %4.2f %5.3f' % (foo[0],foo[1],foo[3],(float(foo[4])-180)*pi/180.0) 
     f.write(keypoint)
     desc = map(float,temp[5:])
-    minimum, maximum = min(desc), max(desc)
-    ran = 256.0 / (maximum - minimum)
-    desc[:] = [int((x-minimum)*ran+0.5) for x in desc]
+#    minimum, maximum = min(desc), max(desc)
+    minimum, maximum = -0.5,0.8 # Range of descriptor seems to be from -0.5 to 0.8. If it's larger Keymatching may fail.
+    ran = 255.0 / (maximum - minimum)
+    desc[:] = [int((x-minimum)*ran) for x in desc]
     i1 = 0
     for i2 in (20,40,60,80,100,120,128):
-      f.write('\n ' + ' '.join(map(str,desc[i1:i2]))+' ')
+      f.write('\n ' + ' '.join(map(str,desc[i1:i2])))
       i1 = i2
   f.close()
 
