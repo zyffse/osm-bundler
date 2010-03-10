@@ -16,5 +16,5 @@ Normally you would run osm-bundler in the following way:
 To see help just run:
  python path_to/RunBundler.py
 
-=Test photo set=
-You could try our test photo set: http://osm-bundler.googlecode.com/files/example_OldTownHall.zip
+=Photo test set=
+You could try our photo test set: http://osm-bundler.googlecode.com/files/example_OldTownHall.zip
