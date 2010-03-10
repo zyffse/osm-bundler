@@ -6,7 +6,7 @@ The easiest way to install osm-bundler is described here. Alternatively you can 
 =Installation=
  * Install Python
  * Install PIL library for Python from http://www.pythonware.com/products/pil/
- * Download the osm-bundler distribution http://osm-bundler.googlecode.com/files/osm-bundler-full.tar.gz and unpack it.
+ * Download the osm-bundler distribution http://osm-bundler.googlecode.com/files/osm-bundler-full.zip and unpack it.
 
 
 =Running=
@@ -15,3 +15,6 @@ Normally you would run osm-bundler in the following way:
 
 To see help just run:
  python path_to/RunBundler.py
+
+=Test photo set=
+You could try our test photo set: http://osm-bundler.googlecode.com/files/example_OldTownHall.zip
