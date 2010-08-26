@@ -2,7 +2,7 @@
 
 This project can considered as a first step towards open source equivalent of Microsoft Photosynth. Microsoft Photosynth desktop application takes a set of overlapping photos and tries to calculate for each photo its relative camera position in 3D space. Also it reconstructs a sparse set of 3D points that represent some points on the photos. Then the photos and the results of 3D reconstruction are uploaded to the Microsoft dedicated server and used in web-based pseudo-3D application.
 
-There is a open source command line predecessor to Microsoft Photosynth called bundler and developed in the University of Washington. Microsoft licensed it and developed further to the stage which is now known as Microsoft Photosynth.
+There is a open source command line predecessor to Microsoft Photosynth called [http://phototour.cs.washington.edu/bundler/ bundler] and developed in the University of Washington. Microsoft licensed it and developed further to the stage which is now known as Microsoft Photosynth.
 
 To run the original bundler software is not an easy task (especially on Windows). What we have developed is a "facade" application (in the sense of facade software design pattern) for the original bundler software.
 
