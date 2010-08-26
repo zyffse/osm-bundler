@@ -14,9 +14,9 @@ Here are the basic steps in the processing pipeline in our application:
 1. Get a set of photos from a user (e.g. as a directory with photos)
 
 2. Prepare photos:
-*scale each photo down if it is too large
-*extract camera model from EXIF tags and check if the camera is in the supplied sqlite    database of cameras
-*extract features from each photo
+  * scale each photo down if it is too large
+  * extract camera model from EXIF tags and check if the camera is in the supplied sqlite    database of cameras
+  * extract features from each photo
 Arbitrary feature extraction programs can be used, provided that a wrapper class is written for it. Each such wrapper class should be derived from [http://code.google.com/p/osm-bundler/source/browse/trunk/osm-bundler/osmbundler/features/extractor.py FeatureExtractor class]. Two feature extraction classes are provided in my application. They can be found [http://code.google.com/p/osm-bundler/source/browse/trunk/osm-bundler/osmbundler/features/ here] .
 
 3. Perform matching of the extracted image features. A program from the original bundler software is invoked for this task by default. This is done by [http://code.google.com/p/osm-bundler/source/browse/trunk/osm-bundler/osmbundler/matching/bundler.py BundlerMatching class] . Alternatively another matching program can utilized, provided that a wrapper class is written for it.
