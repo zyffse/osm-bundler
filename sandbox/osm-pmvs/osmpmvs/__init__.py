@@ -1,15 +1,18 @@
 import logging
 import sys, os, getopt, tempfile, subprocess, shutil
 
+# service function: get path of an executable (.exe suffix is added if we are on Windows)
+def getExecPath(dir, fileName):
+    if sys.platform == "win32": fileName = "%s.exe" % fileName
+    return os.path.join(dir, fileName)
+    
 distrPath = os.path.dirname( os.path.abspath(sys.argv[0]) )
 
-pmvsExecutable = ''
-if sys.platform == "win32": pmvsExecutable = os.path.join(distrPath, "software/pmvs/bin/pmvs2.exe")
-else: pmvsExecutable = os.path.join(distrPath, "software/pmvs/bin/pmvs2")
+pmvsExecutable = getExecPath(distrPath, "software/pmvs/bin/pmvs2")
 
 bundlerBinPath = ''
-if sys.platform == "win32": bundlerBinPath = os.path.join(distrPath, "software/pmvs/bin/")
-else : = bundlerBinPath = os.path.join(distrPath, "software/pmvs/bin/")
+if sys.platform == "win32": bundlerBinPath = os.path.join(distrPath, "software/bundler/bin/")
+else: bundlerBinPath = os.path.join(distrPath, "software/bundler/bin/")
 
 bundler2PmvsExecutable = getExecPath(bundlerBinPath, "Bundle2PMVS")
 RadialUndistordExecutable = getExecPath(bundlerBinPath, "RadialUndistort")
@@ -99,7 +102,7 @@ class OsmPmvs():
         logging.info("Finished!")
         
     def doPMVS(self):
-        print "Run PMVS2"
+        print "Run PMVS2 : %s " % pmvsExecutable
         subprocess.call([pmvsExecutable, "./", "pmvs_options.txt"])
     
     def printHelpExit(self):
@@ -112,12 +115,7 @@ class OsmPmvs():
     
     def printHelp(self):
         print "Error"
-        helpFile = open(os.path.join(distrPath, "osmPMVS/help.txt"), "r")
+        helpFile = open(os.path.join(distrPath, "osmpmvs/help.txt"), "r")
         print helpFile.read()
         helpFile.close()
 
-
-# service function: get path of an executable (.exe suffix is added if we are on Windows)
-def getExecPath(dir, fileName):
-    if sys.platform == "win32": fileName = "%s.exe" % fileName
-    return os.path.join(dir, fileName)
